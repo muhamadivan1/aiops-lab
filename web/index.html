@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
+<title>AIOps Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f4f5f7;--surface:#ffffff;--surface-2:#eef0f3;--line:#dde1e7;
+  --fg:#16191d;--muted:#5f6670;--accent:#b4121b;--accent-ink:#fff;--accent-soft:#fbeaea;
+  --series:#2f5fd0;--band:rgba(47,95,208,.13);--fault:rgba(180,18,27,.07);
+  --crit:#c4161c;--crit-soft:#fdeaea;--major:#b86a00;--major-soft:#fdf2df;--ok:#1d7a4c;--ok-soft:#e2f3ea;
+  --node:#ffffff;--shadow:0 1px 2px rgba(20,30,40,.05),0 6px 18px rgba(20,30,40,.05)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111316;--surface:#1a1d21;--surface-2:#23272c;--line:#33383f;
+  --fg:#eceef1;--muted:#a1a8b2;--accent:#ff5a5f;--accent-ink:#1a0b0b;--accent-soft:#3a1d1f;
+  --series:#7aa2ff;--band:rgba(122,162,255,.16);--fault:rgba(255,90,95,.10);
+  --crit:#ff6b6f;--crit-soft:#3d1c1e;--major:#f2b350;--major-soft:#3b2d15;--ok:#5fd09a;--ok-soft:#163327;
+  --node:#1a1d21;--shadow:none;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111316;--surface:#1a1d21;--surface-2:#23272c;--line:#33383f;
+  --fg:#eceef1;--muted:#a1a8b2;--accent:#ff5a5f;--accent-ink:#1a0b0b;--accent-soft:#3a1d1f;
+  --series:#7aa2ff;--band:rgba(122,162,255,.16);--fault:rgba(255,90,95,.10);
+  --crit:#ff6b6f;--crit-soft:#3d1c1e;--major:#f2b350;--major-soft:#3b2d15;--ok:#5fd09a;--ok-soft:#163327;
+  --node:#1a1d21;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:980px;margin:0 auto}
+h1,h2,h3{margin:0;line-height:1.25;text-wrap:balance}
+h1{font-size:1.6rem}h2{font-size:1.12rem}h3{font-size:.98rem}
+p{margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.muted{color:var(--muted)}.small{font-size:.84rem}
+header{padding-block:24px 10px;display:grid;gap:10px}
+.eyebrow{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:.78rem;color:var(--muted)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;font-size:.86rem;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.view{display:grid;gap:14px;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);display:grid;gap:12px;min-width:0}
+.step{display:flex;gap:10px;align-items:baseline}
+.step b{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:.8rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.kpi{background:var(--surface-2);border-radius:10px;padding:9px 11px}
+.kpi b{display:block;font-family:"IBM Plex Mono",monospace;font-size:1.25rem}
+.kpi span{font-size:.74rem;color:var(--muted)}
+.controls{display:grid;gap:10px}
+.toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.tog{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;background:var(--surface)}
+.tog input{width:18px;height:18px;accent-color:var(--accent);margin-top:2px;flex:0 0 auto}
+.tog span{font-size:.85rem}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select,input[type=range]{font:inherit;max-width:100%}
+select{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:.86rem}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:9px;padding:7px 12px;font:inherit;font-weight:600;font-size:.84rem;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+pre{margin:0;background:var(--surface-2);border-radius:10px;padding:10px 12px;font-family:"IBM Plex Mono",monospace;font-size:.76rem;line-height:1.5;overflow-x:auto;white-space:pre}
+.vend{display:grid;gap:6px;min-width:0}
+.vend h3{font-size:.86rem}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.num{font-family:"IBM Plex Mono",monospace;text-align:right;white-space:nowrap}
+.chartbox{position:relative}
+.chartbox svg{width:100%;height:auto;display:block}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.76rem;padding:6px 8px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-110%)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.78rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.topo{overflow-x:auto}
+.topo svg{width:100%;min-width:620px;height:auto;display:block}
+#canon td{white-space:nowrap}
+.inc{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.inc-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.sev{font-size:.72rem;font-weight:700;border-radius:999px;padding:2px 9px;letter-spacing:.03em}
+.sev.critical{background:var(--crit-soft);color:var(--crit)}
+.sev.major{background:var(--major-soft);color:var(--major)}
+.inc ol{margin:0;padding-left:1.2rem;font-size:.86rem;display:grid;gap:3px}
+.summary{background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:.86rem}
+.note{font-size:.82rem;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+ul{margin:0;padding-left:1.15rem;display:grid;gap:4px}
+.say{display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+.say p{flex:1;min-width:0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.flow div{background:var(--surface-2);border-radius:10px;padding:10px;font-size:.84rem}
+.flow b{display:block;font-family:"IBM Plex Mono",monospace;font-size:.74rem;color:var(--accent)}
+.empty{padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.86rem}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Personal learning project · AIOps</div>
+  <h1>AIOps Lab: from raw network alarms to one actionable ticket</h1>
+  <p class="muted">A browser-based simulation of an AIOps pipeline for a small telecom network: collect data from three vendors, normalize it into one canonical model, detect anomalies, correlate alarms into incidents, find the root cause, and generate a ticket with a runbook.</p>
+  <div class="chips">
+    <span class="chip">By Muhamad Ivan Fadilah</span>
+    <span class="chip">Synthetic data, no real network</span>
+    <span class="chip">Vanilla JavaScript · no libraries</span>
+    <span class="chip">Builds on thesis: Flowbeat canonical data model</span>
+  </div>
+</header>
+
+<nav role="tablist" id="tabs">
+  <button data-v="demo" aria-selected="true">Live demo</button>
+  <button data-v="how" aria-selected="false">How it works</button>
+  <button data-v="role" aria-selected="false">Peran AIOps di Huawei</button>
+  <button data-v="pitch" aria-selected="false">Cara presentasi</button>
+</nav>
+
+<!-- ============ DEMO ============ -->
+<section class="view" id="v-demo">
+  <div class="card controls">
+    <h2>Inject faults and tune the detector</h2>
+    <div class="toggles" id="scen"></div>
+    <div class="row">
+      <label class="small">Sensitivity k (z-score threshold) <input type="range" id="k" min="2" max="5" step="0.25" value="3"> <b class="mono" id="kv">3.00</b></label>
+      <button class="btn" id="reseed">New random data</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <p class="note">Precision and recall are measurable here because the simulator knows exactly where each fault was injected. Lower k catches more faults (recall up) but creates more false alarms (precision down).</p>
+  </div>
+
+  <div class="card">
+    <div class="step"><b>01</b><h2>Collect: three vendors, three formats</h2></div>
+    <p class="muted small">Every device reports the same kind of metrics, but each vendor uses different field names, units, and syntax. This is the same problem my thesis solved for medical devices.</p>
+    <div class="row"><label class="small">Minute <input type="range" id="minute" min="0" max="119" value="85"> <b class="mono" id="minv"></b></label></div>
+    <div class="grid3" id="raw"></div>
+  </div>
+
+  <div class="card">
+    <div class="step"><b>02</b><h2>Normalize: one canonical metric model</h2></div>
+    <p class="muted small">Adapters translate each vendor format into the same record: <span class="mono">{ts, device, layer, metric, value, unit}</span>. Units are converted (fraction to %, µs to ms, bps to Mbps) so detection can treat every device the same way.</p>
+    <div class="tscroll"><table id="canon"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="step"><b>03</b><h2>Detect: rolling baseline and z-score</h2></div>
+    <p class="muted small">For each device and metric, the baseline is the mean and standard deviation of the last 30 normal minutes. A point is anomalous when it is more than k standard deviations away. Anomalous points are excluded from the baseline so a long outage does not become the new normal.</p>
+    <div class="row"><select id="selDev"></select><select id="selMet"></select></div>
+    <div class="chartbox" id="chartbox"><svg id="chart" viewBox="0 0 680 240" role="img" aria-label="Metric time series with baseline band and anomalies"></svg><div class="tip" id="tip" hidden></div></div>
+    <div class="legend"><span><i style="background:var(--series)"></i>Value</span><span><i style="background:var(--band)"></i>Baseline ± k·σ</span><span><i style="background:var(--crit);border-radius:50%;width:10px"></i>Anomaly</span><span><i style="background:var(--fault)"></i>Injected fault window</span></div>
+  </div>
+
+  <div class="card">
+    <div class="step"><b>04</b><h2>Correlate: many alarms, few incidents</h2></div>
+    <p class="muted small">Alarms are grouped into one incident when they happen within 10 minutes of each other and the devices sit on the same branch of the topology. The root cause is the most upstream device in the incident that alarmed first. Tap a device to view its chart.</p>
+    <div class="topo" id="topo"></div>
+    <div class="legend"><span><i style="background:var(--crit)"></i>Root cause</span><span><i style="background:var(--major)"></i>Impacted (alarming)</span><span><i style="background:var(--line)"></i>Normal</span></div>
+  </div>
+
+  <div class="card">
+    <div class="step"><b>05</b><h2>Act: tickets with runbook and summary</h2></div>
+    <p class="muted small">Each incident becomes one ticket with severity, root cause, affected devices, suggested runbook steps, and a short English summary for the NOC team. Here the summary is template-based. In production, an LLM with retrieval over SOPs and past incidents (RAG) could write and enrich it.</p>
+    <div id="tickets" style="display:grid;gap:10px"></div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section class="view" id="v-how" hidden>
+  <div class="card">
+    <h2>Pipeline</h2>
+    <div class="flow">
+      <div><b>COLLECT</b>Vendor A JSON, Vendor B key=value text, Vendor C SNMP-style lines</div>
+      <div><b>NORMALIZE</b>Adapter per vendor into one canonical record, unit conversion</div>
+      <div><b>DETECT</b>Rolling 30-minute baseline, z-score, anomaly-free baseline</div>
+      <div><b>CORRELATE</b>10-minute window + same topology branch</div>
+      <div><b>ROOT CAUSE</b>Most upstream device, earliest alarm</div>
+      <div><b>ACT</b>Ticket, severity, runbook, summary</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Design decisions</h2>
+    <ul>
+      <li><b>Adapter + canonical model.</b> Adding a new vendor means writing one adapter, not changing the detector. Same pattern as my thesis Flowbeat, which unified data from two Omron blood pressure monitors.</li>
+      <li><b>Start with a statistical baseline.</b> A z-score detector is easy to explain to operations teams and gives a benchmark before trying ML models.</li>
+      <li><b>Topology-aware correlation.</b> A failed aggregation link makes every access node below it alarm. Without topology, the NOC would see many separate problems instead of one.</li>
+      <li><b>Measure the detector.</b> Precision, recall, alarm compression, and time to detect are shown for every setting, because an AIOps model has to be evaluated, not only built.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Next improvements</h2>
+    <ul>
+      <li>Seasonality-aware baselines (time of day, day of week) or a forecasting model, so normal peak traffic is not flagged</li>
+      <li>Isolation Forest for multivariate anomalies (CPU, latency, and loss together)</li>
+      <li>Topology loaded from a CMDB or network controller instead of being hardcoded</li>
+      <li>LLM summary with RAG over runbooks and incident history</li>
+      <li>Run on real telemetry from a log and metrics service, and track model drift after deployment</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Limitations</h2>
+    <p class="small">All data is synthetic and generated in the browser. The network has 9 devices and 4 metrics. The goal is to understand and explain the AIOps workflow end to end, not to claim production performance.</p>
+  </div>
+</section>
+
+<!-- ============ ROLE ============ -->
+<section class="view" id="v-role" hidden>
+  <div class="card">
+    <h2>Apa yang kemungkinan kamu kerjakan sebagai AIOps Engineer</h2>
+    <p class="small muted">Disusun dari job description Huawei AIOps Engineer (Campus Hiring 2026) dan cerita Rofi: platformnya low-code, tim dipecah lagi setelah masuk, dan yang terpenting adalah logika. Ini perkiraan, bukan deskripsi resmi tim.</p>
+    <div class="tscroll"><table>
+      <tr><th>Job description</th><th>Contoh pekerjaan nyata</th><th>Bagian demo</th><th>Tools yang mungkin dipakai</th></tr>
+      <tr><td>Design, develop, test, deploy AI/ML solutions</td><td>Model deteksi anomali alarm atau KPI jaringan, prediksi gangguan</td><td>03 Detect</td><td>Python, ModelArts, platform internal</td></tr>
+      <tr><td>Data pipelines, APIs, automation workflows, integration</td><td>Menarik data alarm dan KPI dari berbagai sistem, menyeragamkan format, membuat alur otomatis</td><td>01 Collect, 02 Normalize</td><td>API, SQL, low-code workflow</td></tr>
+      <tr><td>Predictive models, recommendation, LLM apps, automation</td><td>Rekomendasi langkah perbaikan, chatbot ringkasan insiden</td><td>05 Act</td><td>Pangu atau LLM lain, RAG</td></tr>
+      <tr><td>Monitor accuracy, reliability, performance after deployment</td><td>Cek precision, recall, false alarm per minggu, retrain kalau drift</td><td>KPI precision dan recall</td><td>Dashboard, AOM, LTS</td></tr>
+      <tr><td>Work with analysts, domain experts, IT, business users</td><td>Wawancara engineer NOC soal alarm yang mengganggu, ubah jadi requirement</td><td>04 Correlate (aturan dari pakar)</td><td>Rapat, dokumen requirement</td></tr>
+      <tr><td>Documentation, code standards, versioning, deployment</td><td>Menulis dokumentasi model, versi model, prosedur rilis</td><td>How it works</td><td>Git, wiki internal</td></tr>
+      <tr><td>Evaluate emerging AI tech</td><td>Uji coba LLM atau agent baru untuk operasional</td><td>Next improvements</td><td>POC kecil</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>Gambaran satu hari kerja (perkiraan)</h2>
+    <ul>
+      <li><b>Pagi:</b> cek dashboard model, apakah ada lonjakan false alarm atau data yang berhenti masuk</li>
+      <li><b>Siang:</b> membangun atau memperbaiki workflow di platform low-code, menyiapkan data untuk model</li>
+      <li><b>Sore:</b> diskusi dengan tim operasional atau pelanggan operator tentang insiden kemarin, lalu catat requirement baru</li>
+      <li><b>Rutin:</b> dokumentasi, laporan mingguan, belajar materi dan sertifikasi Huawei</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>90 hari pertama (rencana yang bisa kamu ceritakan)</h2>
+    <ul>
+      <li><b>Bulan 1:</b> pelajari produk, platform low-code, sumber data alarm dan KPI, serta istilah operasional</li>
+      <li><b>Bulan 2:</b> ikut proyek nyata, pegang satu bagian pipeline (misalnya normalisasi data atau dashboard evaluasi)</li>
+      <li><b>Bulan 3:</b> usulkan satu perbaikan kecil yang terukur, misalnya menurunkan false alarm, dan mulai sertifikasi HCIA-AI</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ PITCH ============ -->
+<section class="view" id="v-pitch" hidden>
+  <div class="card">
+    <h2>Pitch 60 detik (bahasa Inggris)</h2>
+    <p class="small muted">Pakai saat ditanya proyek, saat ditanya cara kamu mempersiapkan diri, atau saat ditanya “do you have anything to add?”. Buka tab Live demo di HP, lalu tunjukkan langkah 01 sampai 05.</p>
+    <div class="say"><p id="pitchText">To prepare for this role, I built a small AIOps lab to understand the workflow end to end. It simulates a network with three vendors. Each vendor sends data in a different format, so first I normalize everything into one canonical model, the same approach I used in my thesis. Then a rolling z-score detects anomalies, and alarms are correlated by time and topology. For example, one fiber cut produces hundreds of alarm events on four devices, but the system groups them into one incident and points to the aggregation router as the root cause. Finally it creates a ticket with a runbook. I also measure precision and recall, because an AIOps model must be evaluated, not only built. The data is synthetic, but it helped me understand what an AIOps engineer actually does.</p><button class="btn" id="playPitch">🔊</button></div>
+  </div>
+  <div class="card">
+    <h2>Pertanyaan lanjutan yang mungkin muncul</h2>
+    <div class="tscroll"><table>
+      <tr><th>Pertanyaan</th><th>Jawaban singkat</th></tr>
+      <tr><td>Why z-score and not machine learning?</td><td>It is simple, explainable, and gives a baseline to compare against. Next I would try Isolation Forest or a forecasting model and compare precision and recall.</td></tr>
+      <tr><td>What happens with daily traffic patterns?</td><td>A plain rolling baseline can flag normal peaks. I would add seasonality, for example a baseline per hour of day, or use a forecasting model.</td></tr>
+      <tr><td>How do you know the root cause is correct?</td><td>Here I can check because I injected the fault. In real operations, I would validate against resolved tickets and ask NOC engineers for feedback.</td></tr>
+      <tr><td>How would you scale this?</td><td>Stream data through a message queue, store metrics in a time series database, run detection as a service in containers, and monitor the pipeline itself.</td></tr>
+      <tr><td>Did you use real data?</td><td>No, it is synthetic. I built it to learn the workflow, and I am excited to work with real data at Huawei.</td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>Catatan jujur</h2>
+    <p class="small">Sebut terus terang bahwa ini proyek belajar dengan data sintetis yang kamu buat untuk memahami peran AIOps. Interviewer menghargai inisiatif dan kejujuran. Pahami tiga hal ini supaya bisa menjawab pertanyaan lanjutan: adapter + canonical model, z-score dengan baseline 30 menit, dan aturan korelasi berdasarkan waktu dan topologi.</p>
+  </div>
+</section>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const T=120,START=Date.parse('2026-11-19T08:00:00+07:00');
+const hhmm=t=>{const m=480+t;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+const iso=t=>{const m=480+t;return '2026-11-19T'+String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':00+07:00'};
+
+/* ---------- topology ---------- */
+const NODES=[
+ {id:'CORE-JKT-01',layer:'core',vendor:'A',parent:null,x:340,y:40},
+ {id:'AGG-BDG-01',layer:'aggregation',vendor:'B',parent:'CORE-JKT-01',x:170,y:130},
+ {id:'AGG-BDG-02',layer:'aggregation',vendor:'B',parent:'CORE-JKT-01',x:510,y:130},
+ {id:'ACC-BDG-01',layer:'access',vendor:'C',parent:'AGG-BDG-01',x:60,y:225},
+ {id:'ACC-BDG-02',layer:'access',vendor:'C',parent:'AGG-BDG-01',x:170,y:225},
+ {id:'ACC-BDG-03',layer:'access',vendor:'C',parent:'AGG-BDG-01',x:280,y:225},
+ {id:'ACC-BDG-04',layer:'access',vendor:'C',parent:'AGG-BDG-02',x:400,y:225},
+ {id:'ACC-BDG-05',layer:'access',vendor:'C',parent:'AGG-BDG-02',x:510,y:225},
+ {id:'ACC-BDG-06',layer:'access',vendor:'C',parent:'AGG-BDG-02',x:620,y:225},
+];
+const BY=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const depth=id=>{let d=0,n=BY[id];while(n.parent){d++;n=BY[n.parent]}return d};
+const isAnc=(a,b)=>{let n=BY[b];while(n&&n.parent){if(n.parent===a)return true;n=BY[n.parent]}return false};
+const related=(a,b)=>a===b||isAnc(a,b)||isAnc(b,a);
+const METRICS={cpu:{label:'CPU utilization',unit:'%',floor:1.5,two:false},latency:{label:'Latency',unit:'ms',floor:0.4,two:false},loss:{label:'Packet loss',unit:'%',floor:0.08,two:false},traffic:{label:'Traffic',unit:'Mbps',floor:0,two:true}};
+const BASE={core:{cpu:45,latency:4,loss:.05,traffic:8000},aggregation:{cpu:35,latency:8,loss:.1,traffic:2500},access:{cpu:25,latency:12,loss:.2,traffic:600}};
+
+/* ---------- scenarios ---------- */
+const SCEN=[
+ {id:'cpu',name:'Core CPU overload',desc:'CORE-JKT-01 control plane at 90%+ between 08:40 and 08:55',from:40,to:55,on:true,
+  truth:[['CORE-JKT-01','cpu'],['CORE-JKT-01','latency']]},
+ {id:'link',name:'Fiber cut on AGG-BDG-02 uplink',desc:'Heavy packet loss on AGG-BDG-02 from 09:20, all three access nodes below it degrade',from:80,to:120,on:true,
+  truth:[['AGG-BDG-02','loss'],['AGG-BDG-02','latency'],...['ACC-BDG-04','ACC-BDG-05','ACC-BDG-06'].flatMap(d=>[[d,'loss'],[d,'latency'],[d,'traffic']])]},
+ {id:'surge',name:'Traffic surge at ACC-BDG-02',desc:'Local event triples traffic on one access node between 09:35 and 09:48',from:95,to:108,on:true,
+  truth:[['ACC-BDG-02','traffic'],['ACC-BDG-02','cpu']]},
+];
+let seed=20261119;let K=3;
+
+/* ---------- simulate true values ---------- */
+function simulate(){const r=rng(seed);const g=()=>{let u=0;for(let i=0;i<6;i++)u+=r();return u-3};const data={};
+  NODES.forEach(n=>{data[n.id]={};const b=BASE[n.layer];
+    data[n.id].cpu=[];data[n.id].latency=[];data[n.id].loss=[];data[n.id].traffic=[];
+    for(let t=0;t<T;t++){
+      const wave=1+0.08*Math.sin((t+20)/120*Math.PI*1.4);
+      let cpu=b.cpu*wave+g()*1.6, lat=b.latency*(1+g()*0.04), loss=Math.max(0,b.loss+g()*0.03), tr=b.traffic*wave*(1+g()*0.015);
+      const act=s=>s.on&&t>=s.from&&t<s.to;
+      if(act(SCEN[0])&&n.id==='CORE-JKT-01'){cpu=92+r()*5;lat=b.latency*1.7}
+      if(act(SCEN[1])){if(n.id==='AGG-BDG-02'){loss=28+r()*10;lat=b.latency*4}
+        if(n.parent==='AGG-BDG-02'){loss=20+r()*10;lat=b.latency*3;tr=tr*0.4}}
+      if(act(SCEN[2])&&n.id==='ACC-BDG-02'){tr=tr*3.2;cpu=cpu+30}
+      data[n.id].cpu.push(+cpu.toFixed(2));data[n.id].latency.push(+lat.toFixed(3));data[n.id].loss.push(+loss.toFixed(3));data[n.id].traffic.push(+tr.toFixed(1));}
+  });return data}
+
+/* ---------- vendor encoders (raw) ---------- */
+function rawA(n,v,t){return JSON.stringify({hostname:n.id,timestamp:Math.floor((START+t*60000)/1000),cpu_util:+(v.cpu/100).toFixed(4),rtt_us:Math.round(v.latency*1000),pkt_loss:+(v.loss/100).toFixed(5),tx_bps:Math.round(v.traffic*1e6)},null,1)}
+function rawB(n,v,t){return `${iso(t)}|${n.id}|CPU=${v.cpu.toFixed(1)}%|LAT=${v.latency.toFixed(2)}ms|LOSS=${v.loss.toFixed(2)}%|TRAF=${(v.traffic/1000).toFixed(3)}Gbps`}
+function rawC(n,v,t){const ep=Math.floor((START+t*60000)/1000);return [`${ep} 1.3.6.1.4.1.99999.1.1.${n.id} = Gauge32: ${Math.round(v.cpu)}`,`${ep} 1.3.6.1.4.1.99999.1.2.${n.id} = Gauge32: ${Math.round(v.latency*10)}`,`${ep} 1.3.6.1.4.1.99999.1.3.${n.id} = Gauge32: ${Math.round(v.loss*100)}`,`${ep} 1.3.6.1.4.1.99999.1.4.${n.id} = Counter64: ${Math.round(v.traffic*1000)}`].join('\n')}
+/* ---------- adapters (raw -> canonical) ---------- */
+const OIDMAP={1:['cpu',x=>x,'%'],2:['latency',x=>x/10,'ms'],3:['loss',x=>x/100,'%'],4:['traffic',x=>x/1000,'Mbps']};
+function adaptA(s){const o=JSON.parse(s);const ts=new Date(o.timestamp*1000);const b={device:o.hostname,ts:o.timestamp};
+  return [['cpu',o.cpu_util*100,'%'],['latency',o.rtt_us/1000,'ms'],['loss',o.pkt_loss*100,'%'],['traffic',o.tx_bps/1e6,'Mbps']].map(([m,v,u])=>({...b,metric:m,value:v,unit:u}))}
+function adaptB(s){const p=s.split('|');const ts=Date.parse(p[0])/1000;const kv=Object.fromEntries(p.slice(2).map(x=>x.split('=')));
+  const num=x=>parseFloat(x);return [['cpu',num(kv.CPU),'%'],['latency',num(kv.LAT),'ms'],['loss',num(kv.LOSS),'%'],['traffic',num(kv.TRAF)*1000,'Mbps']].map(([m,v,u])=>({device:p[1],ts,metric:m,value:v,unit:u}))}
+function adaptC(s){return s.split('\n').map(line=>{const m=line.match(/^(\d+) 1\.3\.6\.1\.4\.1\.99999\.1\.(\d)\.(\S+) = \w+: (\d+)$/);const [metric,f,unit]=OIDMAP[m[2]];return {device:m[3],ts:+m[1],metric,value:f(+m[4]),unit}})}
+const ENC={A:rawA,B:rawB,C:rawC},ADP={A:adaptA,B:adaptB,C:adaptC};
+
+/* ---------- full pipeline ---------- */
+let TRUE,CANON,DET,ALARMS,INCS,STATS;
+function runPipeline(){
+  TRUE=simulate();
+  // collect + normalize every device-minute through the vendor adapters
+  CANON={};let records=0;
+  NODES.forEach(n=>{CANON[n.id]={cpu:[],latency:[],loss:[],traffic:[]};
+    for(let t=0;t<T;t++){const v={cpu:TRUE[n.id].cpu[t],latency:TRUE[n.id].latency[t],loss:TRUE[n.id].loss[t],traffic:TRUE[n.id].traffic[t]};
+      const recs=ADP[n.vendor](ENC[n.vendor](n,v,t));recs.forEach(r=>{CANON[n.id][r.metric][t]=r.value;records++})}});
+  // detect
+  DET={};ALARMS=[];const W=30;
+  NODES.forEach(n=>{DET[n.id]={};Object.keys(METRICS).forEach(m=>{const s=CANON[n.id][m];const mu=[],sd=[],an=[];const normal=[];
+    for(let t=0;t<T;t++){
+      if(normal.length>=W){const w=normal.slice(-W);const mean=w.reduce((a,b)=>a+b,0)/W;let std=Math.sqrt(w.reduce((a,b)=>a+(b-mean)**2,0)/W);
+        const floor=METRICS[m].floor||mean*0.02;std=Math.max(std,floor);const z=(s[t]-mean)/std;mu[t]=mean;sd[t]=std;
+        const hit=METRICS[m].two?Math.abs(z)>K:z>K;an[t]=hit?z:0;
+        if(hit){ALARMS.push({t,device:n.id,metric:m,value:s[t],z,sev:sevOf(m,s[t],z)})}else normal.push(s[t]);
+      }else{mu[t]=null;sd[t]=null;an[t]=0;normal.push(s[t])}}
+    DET[n.id][m]={mu,sd,an}})});
+  ALARMS.sort((a,b)=>a.t-b.t||depth(a.device)-depth(b.device));
+  // correlate
+  INCS=[];ALARMS.forEach(a=>{let inc=INCS.find(I=>a.t-I.last<=10&&I.devices.some(d=>related(d,a.device)));
+    if(!inc){inc={alarms:[],devices:[],first:a.t,last:a.t};INCS.push(inc)}
+    inc.alarms.push(a);inc.last=Math.max(inc.last,a.t);if(!inc.devices.includes(a.device))inc.devices.push(a.device)});
+  INCS.forEach((I,i)=>{I.id='INC-'+String(i+1).padStart(4,'0');
+    const firstBy={};I.alarms.forEach(a=>{if(firstBy[a.device]==null)firstBy[a.device]=a.t});
+    I.root=I.devices.slice().sort((a,b)=>depth(a)-depth(b)||firstBy[a]-firstBy[b])[0];
+    const cnt={};I.alarms.filter(a=>a.device===I.root).forEach(a=>cnt[a.metric]=(cnt[a.metric]||0)+1);
+    const PRI={loss:0,traffic:1,cpu:2,latency:3};I.mainMetric=Object.entries(cnt).sort((a,b)=>b[1]-a[1]||PRI[a[0]]-PRI[b[0]])[0][0];
+    I.sev=I.alarms.some(a=>a.sev==='critical')?'critical':'major';
+    I.impacted=I.devices.filter(d=>d!==I.root)});
+  // evaluate vs ground truth
+  const truth=new Set();SCEN.filter(s=>s.on).forEach(s=>s.truth.forEach(([d,m])=>{for(let t=Math.max(s.from,W);t<s.to;t++)truth.add(d+'|'+m+'|'+t)}));
+  const flagged=new Set(ALARMS.map(a=>a.device+'|'+a.metric+'|'+a.t));
+  let tp=0;flagged.forEach(x=>{if(truth.has(x))tp++});
+  const mttd=SCEN.filter(s=>s.on).map(s=>{const rootDev=s.truth[0][0];const hit=ALARMS.find(a=>a.device===rootDev&&a.t>=s.from&&a.t<s.to);return hit?hit.t-s.from:null}).filter(x=>x!=null);
+  STATS={records,alarms:ALARMS.length,incidents:INCS.length,precision:flagged.size?tp/flagged.size:null,recall:truth.size?tp/truth.size:null,mttd:mttd.length?mttd.reduce((a,b)=>a+b,0)/mttd.length:null,fp:flagged.size-tp};
+}
+function sevOf(m,v,z){if((m==='loss'&&v>10)||(m==='cpu'&&v>90)||Math.abs(z)>2*K)return 'critical';return 'major'}
+
+/* ---------- render: controls + KPIs ---------- */
+function renderScen(){$('#scen').innerHTML=SCEN.map((s,i)=>`<label class="tog"><input type="checkbox" data-i="${i}" ${s.on?'checked':''}><span><b>${esc(s.name)}</b><br><span class="muted">${esc(s.desc)}</span></span></label>`).join('')}
+$('#scen').addEventListener('change',e=>{const i=e.target.dataset.i;if(i==null)return;SCEN[i].on=e.target.checked;refresh()});
+$('#k').addEventListener('input',e=>{K=+e.target.value;$('#kv').textContent=K.toFixed(2);refresh()});
+$('#reseed').onclick=()=>{seed=Math.floor(Math.random()*1e9);refresh()};
+const pct=x=>x==null?'n/a':(x*100).toFixed(0)+'%';
+function renderKPI(){const comp=STATS.alarms?1-STATS.incidents/STATS.alarms:0;
+  $('#kpis').innerHTML=[
+   [STATS.records.toLocaleString('en-US'),'canonical records'],
+   [STATS.alarms,'raw anomaly alarms'],
+   [STATS.incidents,'correlated incidents'],
+   [STATS.alarms?(comp*100).toFixed(0)+'%':'n/a','alarm compression'],
+   [pct(STATS.precision),'precision'],
+   [pct(STATS.recall),'recall'],
+   [STATS.mttd==null?'n/a':STATS.mttd.toFixed(1)+' min','mean time to detect'],
+  ].map(([b,s])=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('')}
+
+/* ---------- render: raw + canonical ---------- */
+function renderRaw(){const t=+$('#minute').value;$('#minv').textContent=hhmm(t);
+  const pick=['CORE-JKT-01','AGG-BDG-02','ACC-BDG-05'].map(id=>BY[id]);
+  $('#raw').innerHTML=pick.map(n=>{const v={cpu:TRUE[n.id].cpu[t],latency:TRUE[n.id].latency[t],loss:TRUE[n.id].loss[t],traffic:TRUE[n.id].traffic[t]};
+    const label={A:'Vendor A · JSON over REST',B:'Vendor B · key=value syslog line',C:'Vendor C · SNMP-style OIDs'}[n.vendor];
+    return `<div class="vend"><h3>${label}</h3><span class="small muted">${n.id}</span><pre>${esc(ENC[n.vendor](n,v,t))}</pre></div>`}).join('');
+  const rows=pick.flatMap(n=>{const v={cpu:TRUE[n.id].cpu[t],latency:TRUE[n.id].latency[t],loss:TRUE[n.id].loss[t],traffic:TRUE[n.id].traffic[t]};return ADP[n.vendor](ENC[n.vendor](n,v,t)).map(r=>({...r,layer:n.layer}))});
+  $('#canon').innerHTML=`<tr><th>ts</th><th>device</th><th>layer</th><th>metric</th><th style="text-align:right">value</th><th>unit</th><th>anomaly</th></tr>`+
+   rows.map(r=>{const z=DET[r.device][r.metric].an[t];return `<tr><td class="mono small">${iso(t).slice(11,16)}</td><td class="mono small">${r.device}</td><td>${r.layer}</td><td>${r.metric}</td><td class="num">${fmtVal(r.metric,r.value)}</td><td>${r.unit}</td><td>${z?`<span class="sev ${sevOf(r.metric,r.value,z)}">z = ${z.toFixed(1)}</span>`:'<span class="muted small">normal</span>'}</td></tr>`}).join('')}
+function fmtVal(m,v){return m==='traffic'?v.toFixed(0):m==='loss'?v.toFixed(2):v.toFixed(1)}
+
+/* ---------- render: chart ---------- */
+let selDev='AGG-BDG-02',selMet='loss';
+function renderSelects(){$('#selDev').innerHTML=NODES.map(n=>`<option ${n.id===selDev?'selected':''}>${n.id}</option>`).join('');
+  $('#selMet').innerHTML=Object.entries(METRICS).map(([k,m])=>`<option value="${k}" ${k===selMet?'selected':''}>${m.label} (${m.unit})</option>`).join('')}
+$('#selDev').onchange=e=>{selDev=e.target.value;renderChart()};
+$('#selMet').onchange=e=>{selMet=e.target.value;renderChart()};
+let CW=680,CH=240;const PL=52,PR=12,PT=12,PB=28;
+let xs,ys;
+function renderChart(){const s=CANON[selDev][selMet],d=DET[selDev][selMet];
+  CW=Math.round(Math.max(340,Math.min(680,$('#chartbox').clientWidth||680)));CH=CW<500?220:240;$('#chart').setAttribute('viewBox',`0 0 ${CW} ${CH}`);
+  let lo=Infinity,hi=-Infinity;for(let t=0;t<T;t++){lo=Math.min(lo,s[t]);hi=Math.max(hi,s[t]);if(d.mu[t]!=null){lo=Math.min(lo,d.mu[t]-K*d.sd[t]);hi=Math.max(hi,d.mu[t]+K*d.sd[t])}}
+  if(selMet!=='traffic')lo=Math.max(0,lo);const pad=(hi-lo)*0.08||1;lo=Math.max(selMet==='traffic'?lo-pad:0,lo-pad);hi=hi+pad;
+  xs=t=>PL+t/(T-1)*(CW-PL-PR);ys=v=>PT+(1-(v-lo)/(hi-lo))*(CH-PT-PB);
+  let svg='';
+  SCEN.filter(sc=>sc.on&&sc.truth.some(([dv,m])=>dv===selDev&&m===selMet)).forEach(sc=>{svg+=`<rect x="${xs(sc.from)}" y="${PT}" width="${xs(Math.min(sc.to,T-1))-xs(sc.from)}" height="${CH-PT-PB}" fill="var(--fault)"/>`});
+  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4;const y=ys(v);svg+=`<line x1="${PL}" x2="${CW-PR}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${PL-6}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${fmtVal(selMet,v)}</text>`}
+  for(let t=0;t<T;t+=(CW<500?30:20)){svg+=`<text x="${xs(t)}" y="${CH-8}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${hhmm(t)}</text>`}
+  const up=[],dn=[];for(let t=0;t<T;t++){if(d.mu[t]!=null){up.push(`${xs(t)},${ys(d.mu[t]+K*d.sd[t])}`);dn.unshift(`${xs(t)},${ys(Math.max(selMet==='traffic'?-1e12:0,d.mu[t]-K*d.sd[t]))}`)}}
+  if(up.length)svg+=`<polygon points="${up.concat(dn).join(' ')}" fill="var(--band)"/>`;
+  svg+=`<polyline points="${s.map((v,t)=>`${xs(t)},${ys(v)}`).join(' ')}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round"/>`;
+  for(let t=0;t<T;t++)if(d.an[t])svg+=`<circle cx="${xs(t)}" cy="${ys(s[t])}" r="4" fill="var(--crit)" stroke="var(--surface)" stroke-width="2"/>`;
+  svg+=`<line id="hair" x1="0" x2="0" y1="${PT}" y2="${CH-PB}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+  svg+=`<rect x="${PL}" y="${PT}" width="${CW-PL-PR}" height="${CH-PT-PB}" fill="transparent" id="hit"/>`;
+  $('#chart').innerHTML=svg;
+  const hit=$('#hit'),tip=$('#tip'),hair=$('#hair'),box=$('#chartbox');
+  const move=e=>{const r=$('#chart').getBoundingClientRect();const x=(e.clientX-r.left)/r.width*CW;let t=Math.round((x-PL)/(CW-PL-PR)*(T-1));t=Math.max(0,Math.min(T-1,t));
+    hair.setAttribute('x1',xs(t));hair.setAttribute('x2',xs(t));hair.setAttribute('visibility','visible');
+    tip.hidden=false;tip.style.left=(xs(t)/CW*r.width)+'px';tip.style.top=(ys(s[t])/CH*r.height)+'px';
+    tip.textContent=`${hhmm(t)} · ${fmtVal(selMet,s[t])} ${METRICS[selMet].unit}${d.an[t]?' · anomaly z='+d.an[t].toFixed(1):d.mu[t]!=null?' · baseline '+fmtVal(selMet,d.mu[t]):''}`};
+  hit.addEventListener('pointermove',move);hit.addEventListener('pointerdown',move);hit.addEventListener('pointerleave',()=>{tip.hidden=true;hair.setAttribute('visibility','hidden')});
+}
+
+/* ---------- render: topology ---------- */
+function renderTopo(){const status={};INCS.forEach(I=>{status[I.root]='root';I.impacted.forEach(d=>{if(status[d]!=='root')status[d]='imp'})});
+  let svg=`<svg viewBox="0 0 680 270" role="img" aria-label="Network topology with incident status">`;
+  NODES.forEach(n=>{if(n.parent){const p=BY[n.parent];svg+=`<line x1="${p.x}" y1="${p.y}" x2="${n.x}" y2="${n.y}" stroke="${status[n.id]&&status[n.parent]?'var(--crit)':'var(--line)'}" stroke-width="2"/>`}});
+  NODES.forEach(n=>{const st=status[n.id];const col=st==='root'?'var(--crit)':st==='imp'?'var(--major)':'var(--line)';
+    svg+=`<g data-node="${n.id}" style="cursor:pointer"><rect x="${n.x-50}" y="${n.y-19}" width="100" height="38" rx="9" fill="var(--node)" stroke="${col}" stroke-width="${st?3:1.5}"/>
+    <text x="${n.x}" y="${n.y-2}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--fg)" font-family="IBM Plex Mono,monospace">${n.id}</text>
+    <text x="${n.x}" y="${n.y+12}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="IBM Plex Sans,sans-serif">${n.layer} · vendor ${n.vendor}</text></g>`});
+  svg+='</svg>';$('#topo').innerHTML=svg;
+  $('#topo').querySelectorAll('[data-node]').forEach(g=>g.onclick=()=>{selDev=g.dataset.node;const I=INCS.find(I=>I.devices.includes(selDev));if(I){const a=I.alarms.find(a=>a.device===selDev);if(a)selMet=a.metric}renderSelects();renderChart();$('#chartbox').scrollIntoView({behavior:'smooth',block:'center'})});
+}
+
+/* ---------- render: tickets ---------- */
+const RUNBOOK={
+ loss:['Check optical power and interface errors on the uplink of the root device','Verify fiber continuity with the field team','Fail over traffic to the backup path if available','Monitor packet loss on downstream access nodes after the fix'],
+ latency:['Check link utilization and queue drops on the root device','Look for routing changes in the last hour','Reroute or apply QoS if a link is congested'],
+ cpu:['Identify top CPU processes on the control plane','Check for route flapping or protocol storms','Apply control plane protection or rate limits','Plan capacity upgrade if load stays high'],
+ traffic:['Confirm whether the surge is a local event or an attack','Check top talkers and traffic type','Apply QoS or temporary capacity, inform the customer team'],
+};
+const CAUSE={loss:'packet loss, likely a physical link or optical problem',latency:'high latency, likely congestion or rerouting',cpu:'high CPU on the control plane',traffic:'an unusual traffic surge'};
+function renderTickets(){if(!INCS.length){$('#tickets').innerHTML='<div class="empty">No incidents. Turn on a fault scenario above.</div>';return}
+  $('#tickets').innerHTML=INCS.map(I=>{const dur=I.last-I.first+1;const n=BY[I.root];
+    const sum=`Between ${hhmm(I.first)} and ${hhmm(I.last)} WIB, ${I.alarms.length} alarms on ${I.devices.length} device${I.devices.length>1?'s':''} were grouped into one incident. The probable root cause is ${I.root} (${n.layer} layer) with ${CAUSE[I.mainMetric]}.${I.impacted.length?` ${I.impacted.length} downstream device${I.impacted.length>1?'s are':' is'} impacted: ${I.impacted.join(', ')}.`:' No other devices are impacted.'} Recommended first action: ${RUNBOOK[I.mainMetric][0].toLowerCase()}.`;
+    return `<div class="inc"><div class="inc-h"><b class="mono">${I.id}</b><span class="sev ${I.sev}">${I.sev.toUpperCase()}</span></div>
+    <div class="tscroll"><table>
+     <tr><td class="muted small">Root cause</td><td><b class="mono">${I.root}</b> · ${esc(CAUSE[I.mainMetric])}</td></tr>
+     <tr><td class="muted small">Window</td><td class="mono">${hhmm(I.first)} to ${hhmm(I.last)} (${dur} min)</td></tr>
+     <tr><td class="muted small">Alarms grouped</td><td class="mono">${I.alarms.length} alarms → 1 ticket</td></tr>
+     <tr><td class="muted small">Impacted</td><td class="mono small">${I.impacted.length?I.impacted.join(', '):'none'}</td></tr>
+    </table></div>
+    <div><b class="small">Suggested runbook</b><ol>${RUNBOOK[I.mainMetric].map(x=>`<li>${esc(x)}</li>`).join('')}</ol></div>
+    <div class="summary"><b class="small">NOC summary</b><br>${esc(sum)}</div></div>`}).join('')}
+
+/* ---------- refresh ---------- */
+function refresh(){runPipeline();renderKPI();renderRaw();renderChart();renderTopo();renderTickets()}
+$('#minute').addEventListener('input',renderRaw);
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderChart,150)});
+renderScen();renderSelects();refresh();
+
+/* ---------- tabs ---------- */
+document.getElementById('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;['demo','how','role','pitch'].forEach(v=>{$('#v-'+v).hidden=v!==b.dataset.v});
+  document.querySelectorAll('#tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));window.scrollTo({top:0})};
+
+/* ---------- pitch voice ---------- */
+$('#playPitch').onclick=()=>{const s=window.speechSynthesis;if(!s)return;s.cancel();const parts=$('#pitchText').textContent.match(/[^.!?]+[.!?]*/g);const v=s.getVoices().find(v=>/en-US/i.test(v.lang));
+  let i=0;(function next(){if(i>=parts.length)return;const u=new SpeechSynthesisUtterance(parts[i++].trim());if(v)u.voice=v;u.lang='en-US';u.rate=.92;u.onend=next;s.speak(u)})()};
+</script>
+
+</body>
+</html>
